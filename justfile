@@ -28,7 +28,7 @@ release:
 	
 #Line count of project
 loc:
-    tokei -t Cpp -o yaml
+    tokei -t Odin -o yaml
 
 install:
     just release
