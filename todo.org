@@ -4,3 +4,7 @@
 ** DONE in the hash map have already the built-in functions in them
 * TODO Have parsing errors whith line-number and column number
 * TODO Be able to define functions
+
+
+* Things to think about
+** Have the built-in words just be keywords, that way theres no need to do unnecessary lookups
