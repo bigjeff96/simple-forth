@@ -5,7 +5,7 @@ exe := "simple-forth.exe"
 debug_exe := "simple-forth-debug.exe"
 
 debug:
-    odin build . -debug -use-separate-modules -out:{{exe}}
+    odin build . -debug -use-separate-modules -show-timings -out:{{exe}}
     just move_exe
 
 debug_run:
