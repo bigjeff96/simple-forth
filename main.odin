@@ -10,6 +10,8 @@ import "core:strings"
 import "core:unicode"
 import "core:unicode/utf8"
 
+// this is a stupid comment about nothing
+
 import stack_core "stack"
 
 Forth_value :: struct {
