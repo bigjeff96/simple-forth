@@ -2,7 +2,6 @@ package stack
 
 import "core:slice"
 import "core:mem"
-import "core:container"
 import "core:fmt"
 
 //TODO: implement a stack
