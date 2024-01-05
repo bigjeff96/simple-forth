@@ -1,6 +1,6 @@
 package stack
 
-push :: proc(stack: ^[dynamic]$E, value: E) {
+push :: #force_inline proc(stack: ^[dynamic]$E, value: E) {
     append(stack, value)
 }
 
@@ -8,7 +8,7 @@ push :: proc(stack: ^[dynamic]$E, value: E) {
 
 top :: #force_inline proc(stack: [dynamic]$E) -> E {
     if len(stack) == 0 {
-	panic("stack is empty")
+        panic("stack is empty")
     }
     return stack[len(stack) - 1]
 }
@@ -16,7 +16,7 @@ top :: #force_inline proc(stack: [dynamic]$E) -> E {
 get :: #force_inline proc(stack: [dynamic]$E, index_from_top: int) -> E {
 
     if index_from_top >= 0 || abs(index_from_top) > len(stack) {
-	panic("index out of bounds")
+        panic("index out of bounds")
     }
 
     return stack[len(stack) + index_from_top]
@@ -25,7 +25,7 @@ get :: #force_inline proc(stack: [dynamic]$E, index_from_top: int) -> E {
 set :: #force_inline proc(stack: ^[dynamic]$E, index_from_top: int, value: E) {
 
     if index_from_top >= 0 || abs(index_from_top) > len(stack) {
-	panic("index out of bounds")
+        panic("index out of bounds")
     }
 
     stack[len(stack) + index_from_top] = value

@@ -1,0 +1,6 @@
+(fibonacci function)
+: fibonacci (n0 n1 -- n1 n2) over + swap ;
+
+0 1 fibonacci dup . 2 (address) branch
+
+(TODO: make this do fibonacci 30 times then break)
