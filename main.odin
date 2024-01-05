@@ -35,6 +35,7 @@ Forth_word_token :: struct {
 
 Forth_builtin_word :: enum {
     add,
+    sub,
     dump,
     branch,
     branch_if_zero,
@@ -61,7 +62,8 @@ word_dict: Word_dictionnary
 @(init)
 init_word_dict :: proc() {
     word_dict = make(Word_dictionnary)
-    #assert(len(Forth_builtin_word) == 7, "Forgot to add builtin words to init")
+    #assert(len(Forth_builtin_word) == 8, "Forgot to add builtin words to init")
+    word_dict["-"] = Forth_builtin_word.sub
     word_dict["+"] = Forth_builtin_word.add
     word_dict["."] = Forth_builtin_word.dump
     word_dict["branch"] = Forth_builtin_word.branch
@@ -72,7 +74,7 @@ init_word_dict :: proc() {
 }
 
 main :: proc() {
-    data, ok := os.read_entire_file("forth-files/fib.4")
+    data, ok := os.read_entire_file("forth-files/sub.4")
     if !ok do panic("failed to open file")
 
     forth_file := string(data)
@@ -96,7 +98,6 @@ main :: proc() {
         word := strings.trim_right_space(word)
         //NOTE: this is very dumb, only need to do things with ascii stuff
         word_runes := utf8.string_to_runes(word, context.temp_allocator)
-        /* assert(len(word_runes) == 1) */
         switch {
         case unicode.is_digit(word_runes[0]) && !comment_marker:
             x := strconv.atoi(word)
@@ -149,6 +150,14 @@ main :: proc() {
                 switch word_type in it.body {
                 case Forth_builtin_word:
 		    switch word_type {
+		    case .sub:
+			assert(len(stack) >= 2)
+			a := get(stack, -2)
+			b := get(stack, -1)
+			result := a - b
+			pop(&stack)
+			pop(&stack)
+			push(&stack, result)
 		    case .add:
                         assert(len(stack) >= 2)
                         result := get(stack,-1) + get(stack,-2)

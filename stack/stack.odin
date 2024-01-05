@@ -1,20 +1,10 @@
 package stack
 
-import "core:slice"
-import "core:mem"
-import "core:fmt"
-
-//TODO: implement a stack
 push :: proc(stack: ^[dynamic]$E, value: E) {
     append(stack, value)
 }
 
-pop :: #force_inline proc(stack: ^[dynamic]$E) {
-    if len(stack) == 0 {
-	panic("stack is empty")
-    }
-    unordered_remove(stack, len(stack) - 1)
-}
+//pop use builtin one of odin
 
 top :: #force_inline proc(stack: [dynamic]$E) -> E {
     if len(stack) == 0 {
