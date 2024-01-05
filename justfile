@@ -1,6 +1,6 @@
 set shell := ["bash", "-uc"]
 
-find := "/cygdrive/c/cygwin64/bin/find.exe"
+find := if os() == "windows" {"/cygdrive/c/cygwin64/bin/find.exe"} else {"find"}
 exe := "simple-forth.exe"
 debug_exe := "simple-forth-debug.exe"
 
@@ -29,7 +29,8 @@ release:
 #Line count of project
 loc:
     tokei -t Odin -o yaml
-
+	
+[windows]
 install:
     just release
     mv {{exe}} /cygdrive/c/Projects/bin/{{exe}}
