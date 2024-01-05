@@ -98,21 +98,21 @@ main :: proc() {
     //TODO: Be able to define functions
     id := 0
     for id < len(words_str) {
-	defer id += 1
+        defer id += 1
 
-	word := words_str[id]
+        word := words_str[id]
         word = strings.trim_right_space(word)
         //NOTE: this is very dumb, only need to do things with ascii stuff
         word_runes := utf8.string_to_runes(word, context.temp_allocator)
         switch {
-	    
-	case !comment_marker && word[:] == ":":
-	    id += 1
-	    word_in_func := words_str[id]
-	    for word_in_func != ";" {
-		//this needs to be recursive
-	    }
-	    
+
+        case !comment_marker && word[:] == ":":
+            id += 1
+            word_in_func := words_str[id]
+            for word_in_func != ";" {
+                //this needs to be recursive
+            }
+
         case unicode.is_digit(word_runes[0]) && !comment_marker:
             x := strconv.atoi(word)
             forth_int := Forth_value{x}
@@ -133,43 +133,43 @@ main :: proc() {
     }
 
     make_tokens :: proc(words_str: []string, word_dict: ^Word_dictionnary, tokens: ^[dynamic]Forth_token) {
-	comment_marker := false
-	compile_marker := false
-	id := 0
-	for id < len(words_str) {
-	    defer id += 1
+        comment_marker := false
+        compile_marker := false
+        id := 0
+        for id < len(words_str) {
+            defer id += 1
 
-	    word := words_str[id]
+            word := words_str[id]
             word = strings.trim_right_space(word)
             //NOTE: this is very dumb, only need to do things with ascii stuff
             word_runes := utf8.string_to_runes(word, context.temp_allocator)
             switch {
-		
-	    case !comment_marker && word[:] == ":":
-		id += 1
-		word_in_func := words_str[id]
-		for word_in_func != ";" {
-		    //this needs to be recursive
-		}
-		
+
+            case !comment_marker && word[:] == ":":
+                id += 1
+                word_in_func := words_str[id]
+                for word_in_func != ";" {
+                    //this needs to be recursive
+                }
+
             case unicode.is_digit(word_runes[0]) && !comment_marker:
-		x := strconv.atoi(word)
-		forth_int := Forth_value{x}
-		append(tokens, forth_int)
+                x := strconv.atoi(word)
+                forth_int := Forth_value{x}
+                append(tokens, forth_int)
             case len(word) >= 1 && word[:1] == "(" && !(word[len(word) - 1:] == ")"):
-		comment_marker = true
-		//skip comments
+                comment_marker = true
+            //skip comments
 
             case len(word) >= 1 && word[len(word) - 1:] == ")":
-		comment_marker = false
-		//skip comments
+                comment_marker = false
+            //skip comments
 
             case !comment_marker:
-		//NOTE: assume all words are builtin for now
-		forth_word := Forth_word_token{word, word_dict[word]}
-		append(tokens, forth_word)
+                //NOTE: assume all words are builtin for now
+                forth_word := Forth_word_token{word, word_dict[word]}
+                append(tokens, forth_word)
             }
-	}
+        }
     }
 
     fmt.println(tokens)
@@ -224,8 +224,8 @@ main :: proc() {
                     case .dublicate:
                         assert(len(stack) >= 1)
                         push(&stack, top(stack))
-		    case .drop:
-			pop(&stack)
+                    case .drop:
+                        pop(&stack)
                     case .branch:
                         address := top(stack)
                         pop(&stack)
@@ -233,7 +233,7 @@ main :: proc() {
                         ip = address - 1 //NOTE: to compensate for the defer + 1
                     case .branch_if_zero:
                         assert(len(stack) >= 2)
-                        condition := pop(stack)
+                        condition := pop(&stack)
                         if condition == 0 {
                             address := get(stack, -2)
                             assert(address >= 0 && address < len(tokens))
