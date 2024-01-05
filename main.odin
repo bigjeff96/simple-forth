@@ -40,6 +40,7 @@ Forth_builtin_word :: enum {
     dublicate,
     swap,
     over,
+    drop,
 }
 
 Forth_builtin_or_word :: union {
@@ -60,19 +61,20 @@ word_dict: Word_dictionnary
 @(init)
 init_word_dict :: proc() {
     word_dict = make(Word_dictionnary)
-    #assert(len(Forth_builtin_word) == 8, "Forgot to add builtin words to init")
+    #assert(len(Forth_builtin_word) == 9, "Forgot to add builtin words to init")
     word_dict["-"] = .sub
     word_dict["+"] = .add
     word_dict["."] = .dump
     word_dict["branch"] = .branch
     word_dict["branch?"] = .branch_if_zero
     word_dict["dup"] = .dublicate
+    word_dict["drop"] = .drop
     word_dict["swap"] = .swap
     word_dict["over"] = .over
 }
 
 main :: proc() {
-    data, ok := os.read_entire_file("forth-files/sub.4")
+    data, ok := os.read_entire_file("forth-files/fib.4")
     if !ok do panic("failed to open file")
 
     forth_file := string(data)
@@ -91,12 +93,26 @@ main :: proc() {
     using program
 
     comment_marker := false
+    compile_marker := false
     //make the lexer
-    for word in words_str {
-        word := strings.trim_right_space(word)
+    //TODO: Be able to define functions
+    id := 0
+    for id < len(words_str) {
+	defer id += 1
+
+	word := words_str[id]
+        word = strings.trim_right_space(word)
         //NOTE: this is very dumb, only need to do things with ascii stuff
         word_runes := utf8.string_to_runes(word, context.temp_allocator)
         switch {
+	    
+	case !comment_marker && word[:] == ":":
+	    id += 1
+	    word_in_func := words_str[id]
+	    for word_in_func != ";" {
+		//this needs to be recursive
+	    }
+	    
         case unicode.is_digit(word_runes[0]) && !comment_marker:
             x := strconv.atoi(word)
             forth_int := Forth_value{x}
@@ -114,6 +130,46 @@ main :: proc() {
             forth_word := Forth_word_token{word, word_dict[word]}
             append(&tokens, forth_word)
         }
+    }
+
+    make_tokens :: proc(words_str: []string, word_dict: ^Word_dictionnary, tokens: ^[dynamic]Forth_token) {
+	comment_marker := false
+	compile_marker := false
+	id := 0
+	for id < len(words_str) {
+	    defer id += 1
+
+	    word := words_str[id]
+            word = strings.trim_right_space(word)
+            //NOTE: this is very dumb, only need to do things with ascii stuff
+            word_runes := utf8.string_to_runes(word, context.temp_allocator)
+            switch {
+		
+	    case !comment_marker && word[:] == ":":
+		id += 1
+		word_in_func := words_str[id]
+		for word_in_func != ";" {
+		    //this needs to be recursive
+		}
+		
+            case unicode.is_digit(word_runes[0]) && !comment_marker:
+		x := strconv.atoi(word)
+		forth_int := Forth_value{x}
+		append(tokens, forth_int)
+            case len(word) >= 1 && word[:1] == "(" && !(word[len(word) - 1:] == ")"):
+		comment_marker = true
+		//skip comments
+
+            case len(word) >= 1 && word[len(word) - 1:] == ")":
+		comment_marker = false
+		//skip comments
+
+            case !comment_marker:
+		//NOTE: assume all words are builtin for now
+		forth_word := Forth_word_token{word, word_dict[word]}
+		append(tokens, forth_word)
+            }
+	}
     }
 
     fmt.println(tokens)
@@ -168,6 +224,8 @@ main :: proc() {
                     case .dublicate:
                         assert(len(stack) >= 1)
                         push(&stack, top(stack))
+		    case .drop:
+			pop(&stack)
                     case .branch:
                         address := top(stack)
                         pop(&stack)
@@ -175,7 +233,7 @@ main :: proc() {
                         ip = address - 1 //NOTE: to compensate for the defer + 1
                     case .branch_if_zero:
                         assert(len(stack) >= 2)
-                        condition := top(stack)
+                        condition := pop(stack)
                         if condition == 0 {
                             address := get(stack, -2)
                             assert(address >= 0 && address < len(tokens))

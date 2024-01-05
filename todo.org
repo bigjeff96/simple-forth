@@ -1,10 +1,12 @@
-* Features of the language [3/15]
+* Features of the language [3/17]
 ** DONE Make the parser work with newlines, tabs and too  much whitespace
 ** DONE Rewrite the lexer (or something, who knows) such as to deal with the function hach map
 ** DONE Have a hash-map of functions, so as to have lookups of function definitions during runtime
 *** DONE in the hash map have already the built-in functions in them
 ** TODO Have parsing errors whith line-number and column number
+** TODO Be able to define variables
 ** TODO Be able to define functions
+** TODO recursive functions
 ** TODO Be able to store negative values on the stack
 ** TODO Be able to define labels (like constants?) used for branching
 ** TODO compile to assembly starting here
