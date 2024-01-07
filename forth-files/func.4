@@ -1,6 +1,22 @@
-(fibonacci function)
-: fibonacci (n0 n1 -- n1 n2) over + swap ;
+( fibonacci function )
+: fibonacci ( n0 n1 -- n1 n2 ) over + swap ;
 
-0 1 fibonacci dup . 2 (address) branch
+0 1 fibonacci dup . 2 ( address ) branch
 
-(TODO: make this do fibonacci 30 times then break)
+( TODO: make this do fibonacci 30 times then break )
+ 
+( : fibonacci_better ( n -- fib(n) )
+    dup 1 -
+    :return early
+    branch? //note the address of branch needs to depend on the function it is in
+    dup 1 - fibonacci_better
+    swap
+    2 - fibonacci
+    +
+)
+
+(
+	fib(n) =
+	if n <= 1 return n
+	else return fib(n-1) + fib(n - 2)
+)

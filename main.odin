@@ -1,6 +1,7 @@
 package SimpleForth
 
 import "core:fmt"
+import "core:log"
 import "core:mem"
 import "core:os"
 import "core:slice"
@@ -41,6 +42,8 @@ Forth_builtin_word :: enum {
     swap,
     over,
     drop,
+    comment_start,
+    comment_end,
 }
 
 Forth_builtin_or_word :: union {
@@ -61,7 +64,7 @@ word_dict: Word_dictionnary
 @(init)
 init_word_dict :: proc() {
     word_dict = make(Word_dictionnary)
-    #assert(len(Forth_builtin_word) == 9, "Forgot to add builtin words to init")
+    #assert(len(Forth_builtin_word) == 11, "Forgot to add builtin words to init")
     word_dict["-"] = .sub
     word_dict["+"] = .add
     word_dict["."] = .dump
@@ -71,10 +74,13 @@ init_word_dict :: proc() {
     word_dict["drop"] = .drop
     word_dict["swap"] = .swap
     word_dict["over"] = .over
+    word_dict["("] = .comment_start
+    word_dict[")"] = .comment_end
 }
 
 main :: proc() {
-    data, ok := os.read_entire_file("forth-files/fib.4")
+    context.logger = log.create_console_logger()
+    data, ok := os.read_entire_file("forth-files/func.4")
     if !ok do panic("failed to open file")
 
     forth_file := string(data)
@@ -92,49 +98,23 @@ main :: proc() {
     init_forth_program(&program)
     using program
 
-    comment_marker := false
-    compile_marker := false
-    //make the lexer
-    //TODO: Be able to define functions
-    id := 0
-    for id < len(words_str) {
-        defer id += 1
-
-        word := words_str[id]
-        word = strings.trim_right_space(word)
-        //NOTE: this is very dumb, only need to do things with ascii stuff
-        word_runes := utf8.string_to_runes(word, context.temp_allocator)
-        switch {
-
-        case !comment_marker && word[:] == ":":
-            id += 1
-            word_in_func := words_str[id]
-            for word_in_func != ";" {
-                //this needs to be recursive
-            }
-
-        case unicode.is_digit(word_runes[0]) && !comment_marker:
-            x := strconv.atoi(word)
-            forth_int := Forth_value{x}
-            append(&tokens, forth_int)
-        case len(word) >= 1 && word[:1] == "(" && !(word[len(word) - 1:] == ")"):
-            comment_marker = true
-        //skip comments
-
-        case len(word) >= 1 && word[len(word) - 1:] == ")":
-            comment_marker = false
-        //skip comments
-
-        case !comment_marker:
-            //NOTE: assume all words are builtin for now
-            forth_word := Forth_word_token{word, word_dict[word]}
-            append(&tokens, forth_word)
-        }
+    Compile_word :: struct {
+        compiling: bool,
+        word:      string,
+        body:      [dynamic]Forth_token,
     }
+    compile_word: Compile_word
 
-    make_tokens :: proc(words_str: []string, word_dict: ^Word_dictionnary, tokens: ^[dynamic]Forth_token) {
-        comment_marker := false
-        compile_marker := false
+    make_tokens :: proc(
+        words_str: []string,
+        tokens: ^[dynamic]Forth_token,
+        word_dict: ^Word_dictionnary,
+        compile_word: ^Compile_word,
+    ) -> int {
+
+        comment_flag := false
+        //make the lexer
+        //TODO: Be able to define functions
         id := 0
         for id < len(words_str) {
             defer id += 1
@@ -145,48 +125,68 @@ main :: proc() {
             word_runes := utf8.string_to_runes(word, context.temp_allocator)
             switch {
 
-            case !comment_marker && word[:] == ":":
-                id += 1
-                word_in_func := words_str[id]
-                for word_in_func != ";" {
-                    //this needs to be recursive
-                }
-
-            case unicode.is_digit(word_runes[0]) && !comment_marker:
+            case unicode.is_digit(word_runes[0]) && !comment_flag:
                 x := strconv.atoi(word)
                 forth_int := Forth_value{x}
                 append(tokens, forth_int)
-            case len(word) >= 1 && word[:1] == "(" && !(word[len(word) - 1:] == ")"):
-                comment_marker = true
+            case word == "(":
+                comment_flag = true
             //skip comments
 
-            case len(word) >= 1 && word[len(word) - 1:] == ")":
-                comment_marker = false
+            case word == ")":
+                comment_flag = false
             //skip comments
 
-            case !comment_marker:
+            case word == ":" && !comment_flag:
+                new_word_compile: Compile_word
+                new_word_compile.compiling = true
+                id += 1
+                new_word_compile.word = words_str[id]
+                tokens_for_new_word := make([dynamic]Forth_token)
+
+                //do a recursive call here
+                new_id := make_tokens(words_str[id + 1:], &tokens_for_new_word, word_dict, &new_word_compile)
+                id += new_id + 1
+
+            case word == ";" && !comment_flag:
+                //update the dictionnary with new word
+                compile_word.body = tokens^
+                word_dict[compile_word.word] = compile_word.body[:]
+                return id
+
+            case !comment_flag:
                 //NOTE: assume all words are builtin for now
+                thing, ok := word_dict[word]
+                if !ok {
+                    log.error("word not found: ", word)
+                    os.exit(0)
+                }
                 forth_word := Forth_word_token{word, word_dict[word]}
                 append(tokens, forth_word)
             }
         }
+
+        return 0
     }
+
+    make_tokens(words_str, &tokens, &word_dict, &compile_word)
 
     fmt.println(tokens)
     fmt.println("--------")
 
     // "walk the tree"
-    eval_program :: proc(program: ^Forth_program) {
+    eval_program :: proc(ip: int, stack: ^[dynamic]int, tokens: []Forth_token) {
         using stack_core
-        using program
+        // using program
 
-        program.ip = 0
+        ip := ip
+        ip = 0
         ticks := 0
         for ip < len(tokens) {
             defer {
                 ip += 1
                 ticks += 1
-                time.sleep(auto_cast (50000000))
+                // time.sleep(auto_cast (10000000))
             }
             token := &tokens[ip]
 
@@ -196,7 +196,7 @@ main :: proc() {
 
             switch it in token {
             case Forth_value:
-                append(&stack, it.value)
+                append(stack, it.value)
 
             case Forth_comment:
             //skip comments
@@ -204,57 +204,61 @@ main :: proc() {
                 switch word_type in it.body {
                 case Forth_builtin_word:
                     switch word_type {
+                    case .comment_start:
+                    case .comment_end:
                     case .sub:
                         assert(len(stack) >= 2)
                         a := get(stack, -2)
                         b := get(stack, -1)
                         result := a - b
-                        pop(&stack)
-                        pop(&stack)
-                        push(&stack, result)
+                        pop(stack)
+                        pop(stack)
+                        push(stack, result)
                     case .add:
                         assert(len(stack) >= 2)
                         result := get(stack, -1) + get(stack, -2)
-                        pop(&stack)
-                        pop(&stack)
-                        push(&stack, result)
+                        pop(stack)
+                        pop(stack)
+                        push(stack, result)
                     case .dump:
                         fmt.println(slice.last(stack[:]))
-                        pop(&stack)
+                        pop(stack)
                     case .dublicate:
                         assert(len(stack) >= 1)
-                        push(&stack, top(stack))
+                        push(stack, top(stack))
                     case .drop:
-                        pop(&stack)
+                        pop(stack)
                     case .branch:
                         address := top(stack)
-                        pop(&stack)
+                        pop(stack)
                         assert(address >= 0 && address < len(tokens))
                         ip = address - 1 //NOTE: to compensate for the defer + 1
                     case .branch_if_zero:
                         assert(len(stack) >= 2)
-                        condition := pop(&stack)
+                        condition := get(stack, -2)
                         if condition == 0 {
-                            address := get(stack, -2)
+                            address := get(stack, -1)
                             assert(address >= 0 && address < len(tokens))
                             ip = address - 1 //NOTE: to compensate for the defer + 1
                         }
+			pop(stack)
+			pop(stack)
                     case .swap:
                         assert(len(stack) >= 2)
                         a := get(stack, -1)
                         b := get(stack, -2)
-                        set(&stack, -1, b)
-                        set(&stack, -2, a)
+                        set(stack, -1, b)
+                        set(stack, -2, a)
 
                     case .over:
                         assert(len(stack) >= 2)
-                        push(&stack, get(stack, -2))
+                        push(stack, get(stack, -2))
                     }
                 case []Forth_token:
-                    unimplemented("user defined words")
+                    eval_program(0, stack, word_type)
                 }
             }
         }
     }
-    eval_program(&program)
+    eval_program(ip = 0, stack = &program.stack, tokens = program.tokens[:])
 }
