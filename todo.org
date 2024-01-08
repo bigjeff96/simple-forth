@@ -26,5 +26,6 @@
 * Things to think about
 ** Have the built-in words just be keywords, that way theres no need to do unnecessary lookups
 ** Would be really cool if at some point one can define an arena to make allocations on
-** Be able to read and write to files 
+** Be able to read and write to files
+** TODO I just realised that my "lexer" isn't really a lexer, its a lexer and a parser at the same time. I am over-complicating the problem by doing all at the same timez
 

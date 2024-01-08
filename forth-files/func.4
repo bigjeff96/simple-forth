@@ -5,9 +5,9 @@
 
 ( TODO: make this do fibonacci 30 times then break )
  
-( : fibonacci_better ( n -- fib(n) )
+( : fibonacci_better  (n -- fib)
     dup 1 -
-    :return early
+    (return early)
     branch? //note the address of branch needs to depend on the function it is in
     dup 1 - fibonacci_better
     swap
@@ -15,8 +15,3 @@
     +
 )
 
-(
-	fib(n) =
-	if n <= 1 return n
-	else return fib(n-1) + fib(n - 2)
-)

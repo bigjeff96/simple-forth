@@ -29,7 +29,7 @@ Forth_token :: union {
 
 Forth_word_token :: struct {
     name: string,
-    body: Forth_builtin_or_word,
+    body: ^Forth_builtin_or_word,
 }
 
 Forth_builtin_word :: enum {
@@ -38,12 +38,14 @@ Forth_builtin_word :: enum {
     dump,
     branch,
     branch_if_zero,
+    branch_if_negative,
     dublicate,
     swap,
     over,
     drop,
     comment_start,
     comment_end,
+    end,
 }
 
 Forth_builtin_or_word :: union {
@@ -64,23 +66,25 @@ word_dict: Word_dictionnary
 @(init)
 init_word_dict :: proc() {
     word_dict = make(Word_dictionnary)
-    #assert(len(Forth_builtin_word) == 11, "Forgot to add builtin words to init")
+    #assert(len(Forth_builtin_word) == 13, "Forgot to add builtin words to init")
     word_dict["-"] = .sub
     word_dict["+"] = .add
     word_dict["."] = .dump
     word_dict["branch"] = .branch
     word_dict["branch?"] = .branch_if_zero
+    word_dict["branch?neg"] = .branch_if_negative
     word_dict["dup"] = .dublicate
     word_dict["drop"] = .drop
     word_dict["swap"] = .swap
     word_dict["over"] = .over
     word_dict["("] = .comment_start
     word_dict[")"] = .comment_end
+    word_dict["end"] = .end
 }
 
 main :: proc() {
     context.logger = log.create_console_logger()
-    data, ok := os.read_entire_file("forth-files/func.4")
+    data, ok := os.read_entire_file("forth-files/recursive.4")
     if !ok do panic("failed to open file")
 
     forth_file := string(data)
@@ -142,6 +146,7 @@ main :: proc() {
                 new_word_compile.compiling = true
                 id += 1
                 new_word_compile.word = words_str[id]
+		word_dict[new_word_compile.word] = nil
                 tokens_for_new_word := make([dynamic]Forth_token)
 
                 //do a recursive call here
@@ -161,7 +166,7 @@ main :: proc() {
                     log.error("word not found: ", word)
                     os.exit(0)
                 }
-                forth_word := Forth_word_token{word, word_dict[word]}
+                forth_word := Forth_word_token{word, &word_dict[word]}
                 append(tokens, forth_word)
             }
         }
@@ -206,6 +211,7 @@ main :: proc() {
                     switch word_type {
                     case .comment_start:
                     case .comment_end:
+		    case .end:
                     case .sub:
                         assert(len(stack) >= 2)
                         a := get(stack, -2)
@@ -243,6 +249,14 @@ main :: proc() {
                         }
 			pop(stack)
 			pop(stack)
+		    case .branch_if_negative:
+			assert(len(stack) >= 2)
+			condition := get(stack, -2)
+			if condition <= 0 {
+			    address := get(stack, -1)
+			    assert(address >= 0 && address < len(tokens))
+			    ip = address - 1 //NOTE: to compensate for the defer + 1
+			}
                     case .swap:
                         assert(len(stack) >= 2)
                         a := get(stack, -1)

@@ -1,0 +1,12 @@
+: fibonacci  ( n -- fib_n )
+    dup 1 -
+    14
+    branch?neg
+    dup 1 - fibonacci
+    swap
+    2 - fibonacci
+    +
+    end
+;
+
+2 fibonacci dup .
