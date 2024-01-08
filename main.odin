@@ -36,12 +36,13 @@ Forth_builtin_word :: enum {
     add,
     sub,
     dump,
-    branch,
-    branch_if_zero,
-    branch_if_negative,
+    jmp,
+    jeq,
+    jle,
     dublicate,
     swap,
     over,
+    rotate,
     drop,
     comment_start,
     comment_end,
@@ -66,15 +67,16 @@ word_dict: Word_dictionnary
 @(init)
 init_word_dict :: proc() {
     word_dict = make(Word_dictionnary)
-    #assert(len(Forth_builtin_word) == 13, "Forgot to add builtin words to init")
+    #assert(len(Forth_builtin_word) == 14, "Forgot to add builtin words to init")
     word_dict["-"] = .sub
     word_dict["+"] = .add
     word_dict["."] = .dump
-    word_dict["branch"] = .branch
-    word_dict["branch?"] = .branch_if_zero
-    word_dict["branch?neg"] = .branch_if_negative
+    word_dict["jmp"] = .jmp
+    word_dict["jeq"] = .jeq
+    word_dict["jle"] = .jle
     word_dict["dup"] = .dublicate
     word_dict["drop"] = .drop
+    word_dict["rotate"] = .rotate
     word_dict["swap"] = .swap
     word_dict["over"] = .over
     word_dict["("] = .comment_start
@@ -82,8 +84,14 @@ init_word_dict :: proc() {
     word_dict["end"] = .end
 }
 
+DEBUG :: true
+
 main :: proc() {
-    context.logger = log.create_console_logger()
+
+    when DEBUG {
+        context.logger = log.create_console_logger()
+    }
+
     data, ok := os.read_entire_file("forth-files/recursive.4")
     if !ok do panic("failed to open file")
 
@@ -146,7 +154,7 @@ main :: proc() {
                 new_word_compile.compiling = true
                 id += 1
                 new_word_compile.word = words_str[id]
-		word_dict[new_word_compile.word] = nil
+                word_dict[new_word_compile.word] = nil
                 tokens_for_new_word := make([dynamic]Forth_token)
 
                 //do a recursive call here
@@ -180,12 +188,10 @@ main :: proc() {
     fmt.println("--------")
 
     // "walk the tree"
-    eval_program :: proc(ip: int, stack: ^[dynamic]int, tokens: []Forth_token) {
+    eval_program :: proc(stack: ^[dynamic]int, tokens: []Forth_token) {
         using stack_core
         // using program
-
-        ip := ip
-        ip = 0
+        ip := 0
         ticks := 0
         for ip < len(tokens) {
             defer {
@@ -194,10 +200,7 @@ main :: proc() {
                 // time.sleep(auto_cast (10000000))
             }
             token := &tokens[ip]
-
-            if ticks > 100 {
-                break
-            }
+            log.debugf("stack: %v token: %v", stack^, token)
 
             switch it in token {
             case Forth_value:
@@ -211,7 +214,7 @@ main :: proc() {
                     switch word_type {
                     case .comment_start:
                     case .comment_end:
-		    case .end:
+                    case .end:
                     case .sub:
                         assert(len(stack) >= 2)
                         a := get(stack, -2)
@@ -234,12 +237,20 @@ main :: proc() {
                         push(stack, top(stack))
                     case .drop:
                         pop(stack)
-                    case .branch:
+                    case .rotate:
+                        assert(len(stack) >= 3)
+                        a := get(stack, -1)
+                        b := get(stack, -2)
+                        c := get(stack, -3)
+                        set(stack, -1, c)
+                        set(stack, -2, a)
+                        set(stack, -3, b)
+                    case .jmp:
                         address := top(stack)
                         pop(stack)
                         assert(address >= 0 && address < len(tokens))
                         ip = address - 1 //NOTE: to compensate for the defer + 1
-                    case .branch_if_zero:
+                    case .jeq:
                         assert(len(stack) >= 2)
                         condition := get(stack, -2)
                         if condition == 0 {
@@ -247,16 +258,18 @@ main :: proc() {
                             assert(address >= 0 && address < len(tokens))
                             ip = address - 1 //NOTE: to compensate for the defer + 1
                         }
-			pop(stack)
-			pop(stack)
-		    case .branch_if_negative:
-			assert(len(stack) >= 2)
-			condition := get(stack, -2)
-			if condition <= 0 {
-			    address := get(stack, -1)
-			    assert(address >= 0 && address < len(tokens))
-			    ip = address - 1 //NOTE: to compensate for the defer + 1
-			}
+                        pop(stack)
+                        pop(stack)
+                    case .jle:
+                        assert(len(stack) >= 2)
+                        condition := get(stack, -2)
+                        if condition <= 0 {
+                            address := get(stack, -1)
+                            assert(address >= 0 && address < len(tokens))
+                            ip = address - 1 //NOTE: to compensate for the defer + 1
+                        }
+                        pop(stack)
+                        pop(stack)
                     case .swap:
                         assert(len(stack) >= 2)
                         a := get(stack, -1)
@@ -269,10 +282,10 @@ main :: proc() {
                         push(stack, get(stack, -2))
                     }
                 case []Forth_token:
-                    eval_program(0, stack, word_type)
+                    eval_program(stack, word_type)
                 }
             }
         }
     }
-    eval_program(ip = 0, stack = &program.stack, tokens = program.tokens[:])
+    eval_program(stack = &program.stack, tokens = program.tokens[:])
 }

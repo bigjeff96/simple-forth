@@ -1,12 +1,29 @@
-: fibonacci  ( n -- fib_n )
+: fibonacci_slow  ( n -- fib_n )
     dup 1 -
     14
-    branch?neg
-    dup 1 - fibonacci
+    jle
+    dup 1 - fibonacci_slow
     swap
-    2 - fibonacci
+    2 - fibonacci_slow
     +
-    end
-;
+    end ;
+    
+13 fibonacci_slow .
 
-2 fibonacci dup .
+: fib_fast ( n -- fib_n )
+    1 0 
+    ( n 1 0 )
+    rotate
+    ( 1 0 n )
+    ( 1 0 n n )
+    ( 1 0 n n label_near_end ) 
+    dup 15 jle
+    1 -
+    ( 1 0 n_minus_1 )
+    rotate rotate
+    ( n_minus_1 1 0 )
+    over + swap
+    2 jmp ( looping )
+    drop swap drop ;
+
+13 fib_fast .
