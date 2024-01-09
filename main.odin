@@ -84,7 +84,7 @@ init_word_dict :: proc() {
     word_dict["end"] = .end
 }
 
-DEBUG :: false
+DEBUG :: true
 
 main :: proc() {
 

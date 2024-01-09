@@ -1,4 +1,4 @@
-* Features of the language [6/19]
+* Features of the language [6/20]
 ** DONE Make the parser work with newlines, tabs and too  much whitespace
 ** DONE Rewrite the lexer (or something, who knows) such as to deal with the function hach map
 ** DONE Have a hash-map of functions, so as to have lookups of function definitions during runtime
@@ -6,6 +6,8 @@
 ** DONE Have branching address depend on if its in a function or not
 ** DONE Be able to define functions
 ** DONE recursive functions
+** TODO Have statements in the language (ie forget about having an interpreter)
+*** Look at the tsoding video to see how he implements the if else branching
 ** TODO Be able to store negative values on the stack
 ** TODO Be able to define labels (like constants?) used for branching
 ** TODO Have parsing errors whith line-number and column number
@@ -20,9 +22,10 @@
 ** TODO structs
 ** TODO dynamic memory
 
-* Things for the project [0/2]
+* Things for the project [0/3]
 ** TODO Setup testing (compare output from language to expected output)
 ** TODO Make it easy to make a new test
+** TODO Check if there is a bug (sometimes we don't get output from the calculations)
 
 * Things to think about
 ** Have the built-in words just be keywords, that way theres no need to do unnecessary lookups
