@@ -1,0 +1,14 @@
+35 34 +
+69 - if {
+    
+}
+: = ( a b -- 0 or 1) - true_label jeq drop 0 end_label jmp true_label drop 1 end ; 
+
+
+: = ( a b -- 0 or 1)
+  - if {
+        1
+    } else {
+        0
+    }
+      
