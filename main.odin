@@ -84,21 +84,21 @@ init_word_dict :: proc() {
     word_dict["end"] = .end
 }
 
-DEBUG :: true
+DEBUG :: false
 
 main :: proc() {
 
     when DEBUG {
-        context.logger = log.create_console_logger()
+        context.logger = log.create_console_logger(log.Level.Debug)
     } else {
-	context.logger = log.nil_logger()
+        context.logger = log.create_console_logger(log.Level.Info)
     }
 
     data, ok := os.read_entire_file("forth-files/recursive.4")
     if !ok do panic("failed to open file")
 
     forth_file := string(data)
-    fmt.println("--------")
+    log.debugf("--------")
     //TODO: each string word will need to hold line and column info
     words_str, err := strings.fields(forth_file)
     if err != .None do panic("error in parsing words")
@@ -186,8 +186,8 @@ main :: proc() {
 
     make_tokens(words_str, &tokens, &word_dict, &compile_word)
 
-    fmt.println(tokens)
-    fmt.println("--------")
+    log.debugf("tokens: %v", tokens)
+    log.debugf("--------")
 
     // "walk the tree"
     eval_program :: proc(stack: ^[dynamic]int, tokens: []Forth_token) {
@@ -232,7 +232,7 @@ main :: proc() {
                         pop(stack)
                         push(stack, result)
                     case .dump:
-                        fmt.println(slice.last(stack[:]))
+                        log.info(slice.last(stack[:]))
                         pop(stack)
                     case .dublicate:
                         assert(len(stack) >= 1)
