@@ -91,7 +91,7 @@ main :: proc() {
     when DEBUG {
         context.logger = log.create_console_logger()
     } else {
-	context.logger = log.nil_logger()
+        context.logger = log.nil_logger()
     }
 
     data, ok := os.read_entire_file("forth-files/recursive.4")
