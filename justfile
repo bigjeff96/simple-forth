@@ -28,9 +28,7 @@ release:
 	
 #Line count of project
 loc:
-    tokei -t Odin -o yaml
-	
-[windows]
+    tokei -t Odin -o json . | jq '.Odin.code + .Odin.comments'
 install:
     just release
     mv {{exe}} /cygdrive/c/Projects/bin/{{exe}}
@@ -38,7 +36,7 @@ install:
 fmt:
     #!/bin/sh
     for i in $({{ find }} . -name "*.odin" -type f); do
-        odinfmt -w "$i"
+        {{odinfmt}} -w "$i"
     done             
 
 move_exe:
@@ -46,4 +44,4 @@ move_exe:
     mv {{exe}} {{debug_exe}}
 
 test:
-	odin test .
+	{{odin}} test .
