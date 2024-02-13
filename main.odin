@@ -199,7 +199,6 @@ main :: proc() {
             defer {
                 ip += 1
                 ticks += 1
-                // time.sleep(auto_cast (10000000))
             }
             token := &tokens[ip]
             log.debugf("stack: %v token: %v", stack^, token)
